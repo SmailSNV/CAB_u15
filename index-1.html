@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>الأمل الرياضي · تحت 15</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f3d26">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f1e8;--card:#fff;--ink:#17231c;--mut:#667068;--g:#0f3d26;--g2:#1f7a4d;--y:#f2c230;--r:#b3261e;--line:#dcd9cc}
+@media(prefers-color-scheme:dark){:root{--bg:#101a14;--card:#1a2a21;--ink:#eef2ec;--mut:#9fb0a5;--g:#0a2a1a;--g2:#3fbf80;--line:#2c4034}}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font-family:Cairo,system-ui,sans-serif;background:var(--bg);color:var(--ink);padding-top:env(safe-area-inset-top,0px)}
+header{background:var(--g);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:18px;font-weight:800}
+header small{color:var(--y);font-weight:600}
+main{padding:14px 14px 96px;max-width:720px;margin:auto}
+nav{position:fixed;bottom:0;inset-inline:0;background:var(--g);display:flex;padding-bottom:env(safe-area-inset-bottom,0px);z-index:6}
+nav button{flex:1;background:none;border:0;color:#b9d3c4;font:600 12px Cairo;padding:10px 2px}
+nav button.on{color:var(--y);box-shadow:inset 0 3px var(--y)}
+nav b{display:block;font-size:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sp{justify-content:space-between}
+h2{font-size:16px;margin:4px 0 10px}
+.mut{color:var(--mut);font-size:13px}
+input,select,textarea{width:100%;font:inherit;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:8px}
+label{font-size:13px;color:var(--mut);display:block;margin-bottom:2px}
+button.b{font:600 14px Cairo;padding:9px 14px;border-radius:8px;border:0;background:var(--g2);color:#fff}
+button.b.o{background:none;border:1px solid var(--line);color:var(--ink)}
+button.b.d{background:var(--r)}
+button.b.s{padding:5px 10px;font-size:12px}
+a.b{text-decoration:none;display:inline-block;font:600 12px Cairo;padding:5px 10px;border-radius:8px;border:1px solid var(--g2);color:var(--g2)}
+.tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--y);color:#3a2e00}
+.tag.r{background:var(--r);color:#fff}
+.pill{display:inline-block;min-width:34px;text-align:center;font-weight:800;border-radius:6px;padding:2px 6px;background:var(--bg)}
+.score{font-weight:800;font-size:18px;color:var(--g2)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.A{border-inline-start:5px solid var(--g2)}.B{border-inline-start:5px solid var(--y)}
+.sel{display:flex;gap:4px}.sel button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:700 14px Cairo}
+.sel button.on{background:var(--g2);color:#fff;border-color:var(--g2)}
+.sel.d button.on{background:var(--y);color:#3a2e00;border-color:var(--y)}
+dialog{border:0;border-radius:12px;padding:16px;width:min(94vw,440px);background:var(--card);color:var(--ink);margin:auto}
+dialog::backdrop{background:#0008}
+.off{opacity:.45}
+</style>
+</head>
+<body>
+<header><h1>الأمل الرياضي <small>تحت 15</small></h1><span class="mut" id="cnt" style="color:#b9d3c4"></span></header>
+<main id="v"></main>
+<nav id="nav"></nav>
+<dialog id="dlg"></dialog>
+<script>
+const K='amal_u15_v1';
+let db;try{db=JSON.parse(localStorage.getItem(K))}catch(e){}
+db=db||{players:[],sessions:[],pen:[]};
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(db))}catch(e){alert('تعذّر الحفظ على هذا الجهاز')}};
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const age=b=>b?Math.floor((Date.now()-new Date(b))/31557600000):'';
+const P=id=>db.players.find(p=>p.id==id)||{name:'(محذوف)'};
+const tabs=[['pl','👥','اللاعبون'],['se','📝','الحصة'],['tm','⚽','الفريقان'],['pn','🚩','العقوبات'],['mo','⚙️','المزيد']];
+let tab='pl',q='',sdate=today();
+const go=t=>{tab=t;render()};
+function render(){
+  $('#nav').innerHTML=tabs.map(t=>`<button class="${t[0]==tab?'on':''}" onclick="go('${t[0]}')"><b>${t[1]}</b>${t[2]}</button>`).join('');
+  $('#cnt').textContent=db.players.length+' لاعب';
+  $('#v').innerHTML=({pl:vPl,se:vSe,tm:vTm,pn:vPn,mo:vMo})[tab]();
+}
+function open_(h){$('#dlg').innerHTML=h;$('#dlg').showModal()}
+const close_=()=>$('#dlg').close();
+
+/* ---------- اللاعبون ---------- */
+function vPl(){
+  const l=db.players.filter(p=>!q||p.name.includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+  return `<div class="row"><input placeholder="🔍 بحث بالاسم" value="${esc(q)}" oninput="q=this.value;render();$('input').focus()" style="flex:1"><button class="b" style="margin-bottom:8px" onclick="fPl()">+ لاعب</button></div>`+
+  (l.length?l.map(p=>{const ph=(p.phone||'').replace(/\D/g,'');const w=ph.startsWith('0')?'213'+ph.slice(1):ph;return `<div class="card"><div class="row sp"><b>${esc(p.name)}</b>${p.blood?`<span class="tag">${esc(p.blood)}</span>`:''}</div>
+  <div class="mut">${p.birth?`${p.birth} · ${age(p.birth)} سنة`:'تاريخ الميلاد غير مسجل'}</div><div class="mut">📍 ${esc(p.addr)||'—'}</div>
+  <div class="row" style="margin-top:8px">${ph?`<a class="b" href="tel:${ph}">📞 ${esc(p.phone)}</a><a class="b" href="https://wa.me/${w}" target="_blank" rel="noopener">واتساب</a>`:'<span class="mut">لا هاتف</span>'}<span style="flex:1"></span><button class="b o s" onclick="fPl('${p.id}')">تعديل</button><button class="b d s" onclick="dPl('${p.id}')">حذف</button></div></div>`}).join(''):'<p class="mut" style="text-align:center;padding:30px">لا يوجد لاعبون بعد. اضغط «+ لاعب» للبدء.</p>');
+}
+function fPl(id){
+  const p=db.players.find(x=>x.id==id)||{};
+  open_(`<h2>${id?'تعديل لاعب':'لاعب جديد'}</h2>
+  <label>الاسم واللقب</label><input id="f1" value="${esc(p.name)}">
+  <label>تاريخ الميلاد</label><input id="f2" type="date" value="${p.birth||''}">
+  <label>عنوان السكن</label><input id="f3" value="${esc(p.addr)}">
+  <label>زمرة الدم</label><select id="f4"><option value="">—</option>${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(b=>`<option ${p.blood==b?'selected':''}>${b}</option>`).join('')}</select>
+  <label>هاتف الولي</label><input id="f5" type="tel" value="${esc(p.phone)}">
+  <div class="row"><button class="b" onclick="sPl('${id||''}')">حفظ</button><button class="b o" onclick="close_()">إلغاء</button></div>`);
+}
+function sPl(id){
+  const n=$('#f1').value.trim();if(!n)return alert('أدخل اسم اللاعب');
+  const o={name:n,birth:$('#f2').value,addr:$('#f3').value.trim(),blood:$('#f4').value,phone:$('#f5').value.trim()};
+  if(id)Object.assign(db.players.find(x=>x.id==id),o);else db.players.push({id:uid(),...o});
+  save();close_();render();
+}
+function dPl(id){if(confirm('حذف اللاعب مع كل تقييماته وعقوباته؟')){db.players=db.players.filter(p=>p.id!=id);db.sessions.forEach(s=>delete s.r[id]);db.pen=db.pen.filter(x=>x.pid!=id);save();render()}}
+
+/* ---------- الحصة ---------- */
+function ses(){let s=db.sessions.find(x=>x.date==sdate);if(!s){s={date:sdate,r:{}};db.sessions.push(s)}return s}
+function vSe(){
+  if(!db.players.length)return '<p class="mut" style="text-align:center;padding:30px">أضف اللاعبين أولًا.</p>';
+  const s=db.sessions.find(x=>x.date==sdate)||{r:{}};
+  const sel=(id,k,v,cls)=>`<div class="sel ${cls}">${[0,1,2,3,4,5].map(n=>`<button class="${v===n?'on':''}" onclick="rate('${id}','${k}',${n})">${n}</button>`).join('')}</div>`;
+  return `<div class="card"><label>تاريخ الحصة</label><input type="date" value="${sdate}" onchange="sdate=this.value;render()" style="margin:0"></div>`+
+  db.players.slice().sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(p=>{const r=s.r[p.id]||{};const pr=r.p!==false&&s.r[p.id];
+  return `<div class="card"><div class="row sp"><b>${esc(p.name)}</b><button class="b s ${r.p===false?'d':'o'}" onclick="rate('${p.id}','p',${r.p===false?1:0})">${r.p===false?'غائب':'حاضر؟'}</button></div>
+  <div class="${r.p===false?'off':''}"><div class="mut" style="margin:6px 0 3px">الانضباط (من 5)</div>${sel(p.id,'d',r.d,'d')}<div class="mut" style="margin:6px 0 3px">اللعب (من 5)</div>${sel(p.id,'g',r.g,'')}</div></div>`}).join('')+
+  `<p class="mut" style="text-align:center">يُحفظ كل تغيير تلقائيًا · اللاعب غير المقيَّم لا يُحسب له تقييم لتلك الحصة</p>`;
+}
+function rate(id,k,v){const s=ses();const r=s.r[id]=s.r[id]||{};if(k=='p')r.p=!!v;else{r[k]=v;if(r.p===false)r.p=true}save();const y=scrollY;render();scrollTo(0,y)}
+
+/* ---------- الفريقان ---------- */
+function stats(){
+  return db.players.map(p=>{let n=0,d=0,g=0,att=0,tot=0;
+    db.sessions.forEach(s=>{const r=s.r[p.id];if(!r)return;tot++;if(r.p===false)return;att++;if(r.d!=null&&r.g!=null){n++;d+=r.d;g+=r.g}});
+    const sessionsAll=db.sessions.filter(s=>Object.keys(s.r).length).length;
+    return {p,n,d:n?d/n:0,g:n?g/n:0,sc:n?(d+g)/n:0,att,sessionsAll}
+  }).sort((a,b)=>b.sc-a.sc||b.att-a.att||a.p.name.localeCompare(b.p.name,'ar'));
+}
+let cut=12;
+function vTm(){
+  const st=stats();if(!st.length)return '<p class="mut" style="text-align:center;padding:30px">أضف اللاعبين وقيّم الحصص أولًا.</p>';
+  const A=st.slice(0,cut),B=st.slice(cut);
+  const li=(x,i,c)=>`<div class="card ${c}"><div class="row sp"><b>${i+1}. ${esc(x.p.name)}</b><span class="score">${x.sc.toFixed(1)}</span></div><div class="mut">انضباط ${x.d.toFixed(1)} · لعب ${x.g.toFixed(1)} · حضور ${x.att}/${x.sessionsAll}</div></div>`;
+  return `<div class="card"><div class="row sp"><span>عدد لاعبي الفريق A</span><div class="row"><button class="b o s" onclick="cut=Math.max(1,cut-1);render()">−</button><b>${cut}</b><button class="b o s" onclick="cut++;render()">+</button></div></div><div class="mut" style="margin-top:6px">الترتيب بمعدل (الانضباط + اللعب) من 10 على الحصص المقيَّمة، وعند التعادل يُفضَّل الأكثر حضورًا.</div></div>
+  <h2>🟢 الفريق A (${A.length})</h2>${A.map((x,i)=>li(x,i,'A')).join('')}
+  <h2>🟡 الفريق B (${B.length})</h2>${B.map((x,i)=>li(x,i+cut,'B')).join('')||'<p class="mut">لا يوجد</p>'}
+  <button class="b" onclick="shareT()">📤 مشاركة التشكيلة (واتساب)</button>`;
+}
+function shareT(){
+  const st=stats(),t='⚽ الأمل الرياضي تحت 15\n\n🟢 الفريق A:\n'+st.slice(0,cut).map((x,i)=>`${i+1}. ${x.p.name}`).join('\n')+'\n\n🟡 الفريق B:\n'+st.slice(cut).map((x,i)=>`${i+1}. ${x.p.name}`).join('\n');
+  window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');
+}
+
+/* ---------- العقوبات ---------- */
+const types=['إنذار شفوي','تمارين إضافية','حرمان من مباراة','حرمان من حصة','تنظيف العتاد','استدعاء الولي','أخرى'];
+function vPn(){
+  const l=db.pen.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  return `<button class="b" style="margin-bottom:10px" onclick="fPn()">+ تدوين عقوبة</button>`+
+  (l.length?l.map(x=>`<div class="card"><div class="row sp"><b>${esc(P(x.pid).name)}</b><span class="tag r">${esc(x.type)}</span></div><div class="mut">${x.date}</div>${x.note?`<div>${esc(x.note)}</div>`:''}<div style="margin-top:6px"><button class="b o s" onclick="dPn('${x.id}')">حذف</button></div></div>`).join(''):'<p class="mut" style="text-align:center;padding:30px">لا توجد عقوبات مسجلة.</p>');
+}
+function fPn(){
+  if(!db.players.length)return alert('أضف اللاعبين أولًا');
+  open_(`<h2>عقوبة جديدة</h2><label>اللاعب</label><select id="g1">${db.players.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>
+  <label>التاريخ</label><input id="g2" type="date" value="${today()}"><label>العقوبة</label><select id="g3">${types.map(t=>`<option>${t}</option>`).join('')}</select>
+  <label>السبب / ملاحظة</label><textarea id="g4" rows="3"></textarea><div class="row"><button class="b" onclick="sPn()">حفظ</button><button class="b o" onclick="close_()">إلغاء</button></div>`);
+}
+function sPn(){db.pen.push({id:uid(),pid:$('#g1').value,date:$('#g2').value,type:$('#g3').value,note:$('#g4').value.trim()});save();close_();render()}
+function dPn(id){if(confirm('حذف هذه العقوبة؟')){db.pen=db.pen.filter(x=>x.id!=id);save();render()}}
+
+/* ---------- المزيد ---------- */
+function vMo(){
+  const m=new Date().getMonth(),bd=db.players.filter(p=>p.birth&&new Date(p.birth).getMonth()==m);
+  const st=stats().filter(x=>x.sessionsAll),pc={};db.pen.forEach(x=>pc[x.pid]=(pc[x.pid]||0)+1);
+  const top=Object.entries(pc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const bl={};db.players.forEach(p=>{if(p.blood)bl[p.blood]=(bl[p.blood]||0)+1});
+  return `<div class="card"><h2>🎂 أعياد ميلاد هذا الشهر</h2>${bd.length?bd.map(p=>`<div>${esc(p.name)} — ${new Date(p.birth).getDate()}/${m+1}</div>`).join(''):'<span class="mut">لا أحد</span>'}</div>
+  <div class="card"><h2>📊 الأكثر حضورًا</h2>${st.length?st.slice().sort((a,b)=>b.att-a.att).slice(0,5).map(x=>`<div class="row sp"><span>${esc(x.p.name)}</span><span class="pill">${x.att}/${x.sessionsAll}</span></div>`).join(''):'<span class="mut">لا حصص بعد</span>'}</div>
+  <div class="card"><h2>🚩 الأكثر عقوبات</h2>${top.length?top.map(([i,c])=>`<div class="row sp"><span>${esc(P(i).name)}</span><span class="pill">${c}</span></div>`).join(''):'<span class="mut">لا عقوبات</span>'}</div>
+  <div class="card"><h2>🩸 زمر الدم</h2>${Object.keys(bl).length?Object.entries(bl).map(([k,v])=>`<span class="tag" style="margin-inline-end:6px">${k}: ${v}</span>`).join(''):'<span class="mut">—</span>'}</div>
+  <div class="card"><h2>💾 النسخ الاحتياطي</h2><p class="mut" style="margin-bottom:8px">البيانات محفوظة على هذا الهاتف فقط. صدّر نسخة بانتظام، واستوردها لنقل البيانات إلى جهاز آخر.</p>
+  <div class="row"><button class="b" onclick="exp()">تصدير</button><button class="b o" onclick="$('#imp').click()">استيراد</button><button class="b o" onclick="expCsv()">قائمة اللاعبين CSV</button></div><input type="file" id="imp" accept=".json" hidden onchange="imp(this.files[0])"></div>`;
+}
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
+const exp=()=>dl('amal-u15-'+today()+'.json',JSON.stringify(db),'application/json');
+const expCsv=()=>dl('players.csv','\ufeffالاسم,الميلاد,العنوان,الزمرة,هاتف الولي\n'+db.players.map(p=>[p.name,p.birth,p.addr,p.blood,p.phone].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');
+function imp(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.players||!d.sessions||!d.pen)throw 0;if(confirm('سيُستبدل كل ما هو موجود الآن بالنسخة المستوردة. متابعة؟')){db=d;save();render()}}catch(e){alert('ملف غير صالح')}};r.readAsText(f)}
+
+render();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
